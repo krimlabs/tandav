@@ -1,0 +1,4 @@
+{:paths ["src"]
+ :deps {io.replikativ/datahike {:mvn/version "0.3.3"}
+        io.replikativ/datahike-jdbc {:mvn/version "0.1.2-SNAPSHOT"}
+        org.xerial/sqlite-jdbc {:mvn/version "3.34.0"}}}
