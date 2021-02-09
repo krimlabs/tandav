@@ -1,0 +1,4 @@
+{:up ["ALTER TABLE trades ADD COLUMN create_time TIMESTAMP"
+      "ALTER TABLE trades ADD COLUMN fee_cur TEXT"
+      "ALTER TABLE trades ADD COLUMN fee_units FLOAT"]
+ :down []}

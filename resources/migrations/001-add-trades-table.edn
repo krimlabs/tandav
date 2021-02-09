@@ -1,0 +1,9 @@
+{:up ["CREATE TABLE IF NOT EXISTS trades (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	buy_cur TEXT NOT NULL,
+	sell_cur TEXT NOT NULL,
+	buy_units FLOAT NOT NULL,
+	sell_units FLOAT NOT NULL,
+	tx_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);"]
+ :down ["DROP TABLE trades;"]}
