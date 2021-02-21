@@ -6,7 +6,7 @@
 (defn column-val [a b]
   #(str (-> % a) " " (-> % b)))
 
-(defn trades-view [{:keys [trades]}]
+(defn transactions-view [_]
   {:fx/type :table-view
    :columns [{:fx/type :table-column
               :text "id"
@@ -26,7 +26,7 @@
    :items [] ;;(db/get-all-trades db/conf)
    })
 
-(defn new-tx-view []
+(defn new-tx-view [_]
   {:fx/type :h-box
    :children [{:fx/type :v-box
                :children [{:fx/type :label
@@ -37,31 +37,80 @@
                            :text "Sell currency"}
                           {:fx/type :text-field}]}]})
 
-(defn root-view [{{:keys []} :state}]
+(defn accounts [{:keys [cp state]}]
+  {:fx/type :v-box
+   :children [{:fx/type :tool-bar
+               :children [{:fx/type :button
+                           :text "Add account"}]}
+              {:fx/type :table-view
+               :columns [{:fx/type :table-column
+                          :text "id"
+                          :cell-value-factory :id}
+                         {:fx/type :table-column
+                          :text "name"
+                          :cell-value-factory identity}
+                         {:fx/type :table-column
+                          :text "address"
+                          :cell-value-factory identity}
+                         {:fx/type :table-column
+                          :text "api-key"
+                          :cell-value-factory identity}
+                         {:fx/type :table-column
+                          :text "secret-key"
+                          :cell-value-factory identity}
+                         {:fx/type :table-column
+                          :text "created-at"
+                          :cell-value-factory :created_at}]
+               :items [] ;;(db/get-all-trades db/conf)
+               }]})
+
+(defn root-view [{:keys [cp]}]
   {:fx/type :stage
    :showing true
    :scene {:fx/type :scene
-           :root {:fx/type :v-box
-                  :spacing 20
-                  :children [{:fx/type trades-view}]}}})
+           ;; :root {:fx/type :v-box
+           ;;        :spacing 20
+           ;;        :children [{:fx/type transactions-view}]}
+           :root {:fx/type :tab-pane
+                  :pref-width 960
+                  :pref-height 540
+                  :tabs [{:fx/type :tab
+                          :text "Accounts"
+                          :closable false
+                          :content {:fx/type accounts}}
+                         {:fx/type :tab
+                          :text "Transactions"
+                          :closable false
+                          :content {:fx/type transactions-view}}
+                         {:fx/type :tab
+                          :text "Position"
+                          :closable false
+                          :content {:fx/type transactions-view}}]}
+           }})
 
-(defmethod ig/init-key :ui/renderer [_ _]
-  (let [state (atom {})
-        renderer
-        (fx/create-renderer
-         ;; :opts {:fx.opt/map-event-handler event-handler}
-         :middleware (fx/wrap-map-desc (fn [state]
-                                         {:fx/type root-view
-                                          :showing true
-                                          :state state})))]
-    ;; start the ui
+(defmethod ig/init-key :ui/state [_ {:keys [init-val]}]
+  (atom init-val))
+
+(defmethod ig/init-key :ui/renderer [_ {:db/keys [cp migrations]
+                                        :ui/keys [state]}]
+  (let [renderer   (fx/create-renderer
+                    ;; :opts {:fx.opt/map-event-handler event-handler}
+                    :middleware (fx/wrap-map-desc (fn [state]
+                                                    {:fx/type root-view
+                                                     :cp cp
+                                                     ;; :migrations migrations
+                                                     :showing true
+                                                     :state state})))]
+    ;; invoke renderer when the state changes
     (fx/mount-renderer state renderer)
 
     ;; return components
     {:state state
      :renderer renderer}))
 
-;; (defmethod ig/halt-key! :ui/renderer [_ {:keys [renderer]}]
-;;   (renderer {:fx/type :root-view
-;;              :showing false}))
+(defmethod ig/halt-key! :ui/renderer [_ {:keys [state renderer]}]
+  (fx/unmount-renderer state renderer))
 
+(comment
+  (require '[integrant.repl.state :refer [system]])
+  )

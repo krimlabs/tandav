@@ -13,15 +13,24 @@
 (defmethod ig/init-key :db/conf [_ conf]
   conf)
 
-(defmethod ig/init-key :db/migrations [_ {:keys [resource conf]}]
+(defmethod ig/init-key :db/migrations [_ {:keys [resource]
+                                          :db/keys [conf]}]
   (let [ragtime-config {:datastore (ragtime.jdbc/sql-database conf)
-                        :migrations (ragtime.jdbc/load-resources "migrations")}]
-    {:migrate #(ragtime.repl/migrate ragtime-config)
+                        :migrations (ragtime.jdbc/load-resources "migrations")}
+        migrate-fn #(ragtime.repl/migrate ragtime-config)]
+    (try
+      (migrate-fn)
+      (catch Exception e
+        (.printStackTrace e)
+        (prn "Database is not up")))
+
+    {:ragtime-config ragtime-config
+     :migrate-fn migrate-fn
      ;; rollback is a destructive action, use with caution
      ;; :rollback #(ragtime.repl/rollback ragtime-config)
      }))
 
-(defmethod ig/init-key :db/cp [_ {:keys [conf]}]
+(defmethod ig/init-key :db/cp [_ {:db/keys [conf]}]
   (let [datasource-opts {:username (-> conf :user)
                          :password (-> conf :password)
                          :database-name (-> conf :dbname)
@@ -32,7 +41,7 @@
     {:datasource datasource}))
 
 (defmethod ig/halt-key! :db/cp [_ {:keys [datasource]}]
-  (hikari/close-datasource datasource))
+  (.close datasource))
 
 (comment
   (let [db-spec (-> system :db/cp)]
@@ -44,4 +53,10 @@
                          :fee-cur "eth"
                          :fee-units 0.004
                          :tx-time (time/local-date-time)})
-    (get-all-transactions db-spec)))
+    (get-all-transactions db-spec))
+
+  (let [rg-conf (-> system :db/migrations :ragtime-config)
+        migrate (-> system :db/migrations :migrate)]
+    (migrate)
+    ;; (ragtime.core/applied-migrations rg-conf))
+  ))
