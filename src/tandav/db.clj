@@ -1,4 +1,5 @@
 (ns tandav.db
+
   (:require [hugsql.core :as hugsql]
             [integrant.core :as ig]
             [hikari-cp.core :as hikari]
@@ -27,21 +28,24 @@
     {:ragtime-config ragtime-config
      :migrate-fn migrate-fn
      ;; rollback is a destructive action, use with caution
-     ;; :rollback #(ragtime.repl/rollback ragtime-config)
+     ;; :rollback-fn #(ragtime.repl/rollback ragtime-config)
      }))
 
-(defmethod ig/init-key :db/cp [_ {:db/keys [conf]}]
+(defn- make-db-spec [opts]
+  {:datasource (hikari/make-datasource opts)})
+
+(defmethod ig/init-key :db/cp [a {:db/keys [conf]}]
   (let [datasource-opts {:username (-> conf :user)
                          :password (-> conf :password)
                          :database-name (-> conf :dbname)
                          :server-name (-> conf :host)
                          :port-number (-> conf :port)
-                         :adapter (-> conf :dbtype)}
-        datasource (hikari/make-datasource datasource-opts)]
-    {:datasource datasource}))
+                         :adapter (-> conf :dbtype)
+                         :maximum-pool-size 5}]
+    {:datasource (hikari/make-datasource datasource-opts)}))
 
 (defmethod ig/halt-key! :db/cp [_ {:keys [datasource]}]
-  (.close datasource))
+  (hikari/close-datasource datasource))
 
 (comment
   (let [db-spec (-> system :db/cp)]
@@ -54,6 +58,7 @@
                          :fee-units 0.004
                          :tx-time (time/local-date-time)})
     (get-all-transactions db-spec))
+
 
   (let [rg-conf (-> system :db/migrations :ragtime-config)
         migrate (-> system :db/migrations :migrate)]

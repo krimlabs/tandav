@@ -1,2 +1,6 @@
 (ns tandav.core
-  (:require [cljfx.api :as fx]))
+  (:require [tandav.system :as system]
+            [integrant.core :as ig]))
+
+(defn- main []
+    (ig/init system/config [:ui/renderer]))

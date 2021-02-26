@@ -37,11 +37,14 @@
                            :text "Sell currency"}
                           {:fx/type :text-field}]}]})
 
-(defn accounts [{:keys [cp state]}]
+(defn accounts [{:keys [state]}]
   {:fx/type :v-box
    :children [{:fx/type :tool-bar
-               :children [{:fx/type :button
-                           :text "Add account"}]}
+               :items [{:fx/type :h-box
+                        :alignment :center
+                        :children [{:fx/type :button
+                                    :text "Add account"
+                                    :on-mouse-clicked #(swap! state assoc :view :accounts/new)}]}]}
               {:fx/type :table-view
                :columns [{:fx/type :table-column
                           :text "id"
@@ -64,43 +67,55 @@
                :items [] ;;(db/get-all-trades db/conf)
                }]})
 
-(defn root-view [{:keys [cp]}]
-  {:fx/type :stage
-   :showing true
-   :scene {:fx/type :scene
-           ;; :root {:fx/type :v-box
-           ;;        :spacing 20
-           ;;        :children [{:fx/type transactions-view}]}
-           :root {:fx/type :tab-pane
-                  :pref-width 960
-                  :pref-height 540
-                  :tabs [{:fx/type :tab
-                          :text "Accounts"
-                          :closable false
-                          :content {:fx/type accounts}}
-                         {:fx/type :tab
-                          :text "Transactions"
-                          :closable false
-                          :content {:fx/type transactions-view}}
-                         {:fx/type :tab
-                          :text "Position"
-                          :closable false
-                          :content {:fx/type transactions-view}}]}
-           }})
+(defn new-account [_]
+  {:fx/type :v-box
+   :children [{:fx/type :label
+               :text "Add new account"}
+              {:fx/type :text-field}]})
+
+(defn dash [{:keys [state]}]
+  {:fx/type :tab-pane
+   :pref-width 960
+   :pref-height 540
+   :tabs [{:fx/type :tab
+           :text "Accounts"
+           :closable false
+           :content {:fx/type accounts
+                     :state state}}
+          {:fx/type :tab
+           :text "Transactions"
+           :closable false
+           :content {:fx/type transactions-view}}
+          {:fx/type :tab
+           :text "Position"
+           :closable false
+           :content {:fx/type transactions-view}}]})
+
+(def router
+  {:app/dashboard dash
+   :accounts/new new-account})
+
+(defn root-view [{:keys [cp state]}]
+  (let [view (get state :view :app/dashboard)]
+    {:fx/type :stage
+     :showing true
+     :scene {:fx/type :scene
+             :root {:fx/type (-> router view)
+                    :state state}}}))
 
 (defmethod ig/init-key :ui/state [_ {:keys [init-val]}]
   (atom init-val))
 
 (defmethod ig/init-key :ui/renderer [_ {:db/keys [cp migrations]
                                         :ui/keys [state]}]
-  (let [renderer   (fx/create-renderer
-                    ;; :opts {:fx.opt/map-event-handler event-handler}
-                    :middleware (fx/wrap-map-desc (fn [state]
-                                                    {:fx/type root-view
-                                                     :cp cp
-                                                     ;; :migrations migrations
-                                                     :showing true
-                                                     :state state})))]
+  (let [renderer (fx/create-renderer
+                  ;; :opts {:fx.opt/map-event-handler event-handler}
+                  :middleware (fx/wrap-map-desc (fn [state]
+                                                  {:fx/type root-view
+                                                   :cp cp
+                                                   :migrations migrations
+                                                   :showing true
+                                                   :state state})))]
     ;; invoke renderer when the state changes
     (fx/mount-renderer state renderer)
 
