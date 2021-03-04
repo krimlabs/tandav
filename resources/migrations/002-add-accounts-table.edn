@@ -1,0 +1,8 @@
+{:up ["CREATE TABLE IF NOT EXISTS accounts (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	name TEXT NOT NULL,
+	address TEXT,
+	api_key TEXT,
+	secret_key TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);"]
+ :down ["DROP TABLE accounts;"]}

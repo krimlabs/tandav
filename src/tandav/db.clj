@@ -51,18 +51,22 @@
   (hikari/close-datasource datasource))
 
 (comment
-  (let [db-spec (-> system :db/cp)]
-    (insert-transaction db-spec
-                        {:buy-cur "eth"
-                         :buy-units 1.35
-                         :sell-cur "dai"
-                         :sell-units 2002.13
-                         :fee-cur "eth"
-                         :fee-units 0.004
-                         :tx-time (time/local-date-time)})
-    (get-all-transactions db-spec))
+  (user/db-exec insert-transaction
+                {:buy-cur "eth"
+                 :buy-units 1.35
+                 :sell-cur "dai"
+                 :sell-units 2002.13
+                 :fee-cur "eth"
+                 :fee-units 0.004
+                 :tx-time (time/local-date-time)})
+  (user/db-exec get-all-transactions)
 
 
-  (let [rg-conf (-> system :db/migrations :ragtime-config)
-        migrate (-> system :db/migrations :migrate)]
-    (migrate)))
+  (user/db-exec insert-account
+                {:name "Binance Read"
+                 :address ""
+                 :api-key "b-api-key"
+                 :secret-key "b-secret"})
+  (user/db-exec get-all-accounts)
+
+  (user/db-exec delete-account-by-id {:id 2}))

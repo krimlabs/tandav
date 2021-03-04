@@ -19,3 +19,10 @@
   (-> system
       :ui/event-handler
       (apply [e])))
+
+(defn db-exec
+  "Execute a db function without passing spec"
+  ([f]
+   (db-exec f {}))
+  ([f params]
+   (f (-> system :db/cp) params)))

@@ -31,7 +31,7 @@
   (atom (fx/create-context init-val cache/lru-cache-factory)))
 
 (defmethod ig/init-key :ui/event-handler [_ {:keys [ui/state]}]
- ;; https://github.com/cljfx/cljfx/blob/master/examples/e18_pure_event_handling.clj
+  ;; https://github.com/cljfx/cljfx/blob/master/examples/e18_pure_event_handling.clj
   (-> events/handler
       (fx/wrap-co-effects
        {:fx/context (fx/make-deref-co-effect state)})
