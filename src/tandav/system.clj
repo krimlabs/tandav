@@ -4,19 +4,23 @@
             [tandav.ui]))
 
 (def config
-  {:db/conf {:dbtype "postgresql"
-             :dbname "tandav_dev"
-             :host "localhost"
-             :port 5432
-             :user "shivekkhurana"
-             :password ""}
+  {;; db/postgres is not being used right now
+   :db/postgres {:dbtype "postgresql"
+                 :dbname "tandav_dev"
+                 :host "localhost"
+                 :port 5432
+                 :user "shivekkhurana"
+                 :password ""}
+   :db/sqlite {:subprotocol "sqlite"
+               :subname "resources/main.sqlite"}
    :db/migrations {:resource "migrations"
-                   :db/conf (ig/ref :db/conf)}
+                   :db/sqlite (ig/ref :db/sqlite)}
    :db/cp {:doc "Component to hold the connections pool"
-           :db/conf (ig/ref :db/conf)}
-
+           :db/sqlite (ig/ref :db/sqlite)}
    :ui/state {:init-val {}}
+   :ui/event-handler {:ui/state (ig/ref :ui/state)}
    :ui/renderer {:doc "The cljfx renderer"
                  :ui/state (ig/ref :ui/state)
+                 :ui/event-handler (ig/ref :ui/event-handler)
                  :db/cp (ig/ref :db/cp)
                  :db/migrations (ig/ref :db/migrations)}})

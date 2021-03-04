@@ -12,3 +12,10 @@
       :ui/renderer
       :renderer
       (apply [])))
+
+(defn dispatch!
+  "Dispatch an event from REPL"
+  [e]
+  (-> system
+      :ui/event-handler
+      (apply [e])))

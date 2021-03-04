@@ -1,5 +1,4 @@
 (ns tandav.db
-
   (:require [hugsql.core :as hugsql]
             [integrant.core :as ig]
             [hikari-cp.core :as hikari]
@@ -11,12 +10,15 @@
 ;; sql function def macro call
 (hugsql/def-db-fns "tandav/db.sql")
 
-(defmethod ig/init-key :db/conf [_ conf]
+(defmethod ig/init-key :db/postgres [_ conf]
+  conf)
+
+(defmethod ig/init-key :db/sqlite [_ conf]
   conf)
 
 (defmethod ig/init-key :db/migrations [_ {:keys [resource]
-                                          :db/keys [conf]}]
-  (let [ragtime-config {:datastore (ragtime.jdbc/sql-database conf)
+                                          :db/keys [sqlite]}]
+  (let [ragtime-config {:datastore (ragtime.jdbc/sql-database sqlite)
                         :migrations (ragtime.jdbc/load-resources "migrations")}
         migrate-fn #(ragtime.repl/migrate ragtime-config)]
     (try
@@ -26,23 +28,24 @@
         (prn "Database is not up")))
 
     {:ragtime-config ragtime-config
-     :migrate-fn migrate-fn
-     ;; rollback is a destructive action, use with caution
-     ;; :rollback-fn #(ragtime.repl/rollback ragtime-config)
-     }))
+     :migrate-fn migrate-fn}))
 
-(defn- make-db-spec [opts]
-  {:datasource (hikari/make-datasource opts)})
+(defn conf->datasource-opts [conf]
+  (cond
+    (= "postgresql" (-> conf :dbtype))
+    {:username (-> conf :user)
+     :password (-> conf :password)
+     :database-name (-> conf :dbname)
+     :server-name (-> conf :host)
+     :port-number (-> conf :port)
+     :adapter (-> conf :dbtype)
+     :maximum-pool-size 5}
 
-(defmethod ig/init-key :db/cp [a {:db/keys [conf]}]
-  (let [datasource-opts {:username (-> conf :user)
-                         :password (-> conf :password)
-                         :database-name (-> conf :dbname)
-                         :server-name (-> conf :host)
-                         :port-number (-> conf :port)
-                         :adapter (-> conf :dbtype)
-                         :maximum-pool-size 5}]
-    {:datasource (hikari/make-datasource datasource-opts)}))
+    (= "sqlite" (-> conf :subprotocol))
+    {:jdbc-url (str "jdbc:sqlite:" (-> conf :subname))}))
+
+(defmethod ig/init-key :db/cp [_ {:db/keys [sqlite]}]
+  {:datasource (hikari/make-datasource (conf->datasource-opts sqlite))})
 
 (defmethod ig/halt-key! :db/cp [_ {:keys [datasource]}]
   (hikari/close-datasource datasource))
@@ -62,6 +65,4 @@
 
   (let [rg-conf (-> system :db/migrations :ragtime-config)
         migrate (-> system :db/migrations :migrate)]
-    (migrate)
-    ;; (ragtime.core/applied-migrations rg-conf))
-  ))
+    (migrate)))

@@ -7,6 +7,5 @@
 	sell_units FLOAT(6) NOT NULL,
 	fee_units FLOAT(6) NOT NULL,
 	tx_time TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);"]
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);"]
  :down ["DROP TABLE transactions;"]}
