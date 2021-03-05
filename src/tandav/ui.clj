@@ -7,7 +7,7 @@
             [tandav.views.transactions :as views.transactions]
             [tandav.views.accounts :as views.accounts]))
 
-(defn root-view [_]
+(defn root-view [{:keys [db/cp]}]
   {:fx/type :stage
    :showing true
    :scene {:fx/type :scene
@@ -27,20 +27,34 @@
                             :closable false
                             :content {:fx/type views.transactions/table}}]}}})
 
+(defn db-effect
+  "Side effect to talk to the database"
+  [{:keys [db/cp f params on-success on-error]} dispatch!]
+  (try
+    (let [res (f cp (or params {}))]
+      (dispatch! (assoc on-success :res res)))
+    (catch Exception e
+      (dispatch! (assoc on-error :err e)))))
+
 (defmethod ig/init-key :ui/state [_ {:keys [init-val]}]
   (atom (fx/create-context init-val cache/lru-cache-factory)))
 
-(defmethod ig/init-key :ui/event-handler [_ {:keys [ui/state]}]
+(defmethod ig/init-key :ui/event-handler [_ {:keys [db/cp ui/state init-events]}]
   ;; https://github.com/cljfx/cljfx/blob/master/examples/e18_pure_event_handling.clj
-  (-> events/handler
-      (fx/wrap-co-effects
-       {:fx/context (fx/make-deref-co-effect state)})
-      (fx/wrap-effects
-       {:context (fx/make-reset-effect state)
-        :dispatch fx/dispatch-effect})))
+  (let [handler (-> events/handler
+                    (fx/wrap-co-effects
+                     {:db/cp (fn [] cp)
+                      :fx/context (fx/make-deref-co-effect state)})
+                    (fx/wrap-effects
+                     {:context (fx/make-reset-effect state)
+                      :dispatch fx/dispatch-effect
+                      :db db-effect}))]
+    ;; dispatch initial events
+    (doseq [e init-events]
+      (handler e))
+    handler))
 
-(defmethod ig/init-key :ui/renderer [_ {:keys [db/cp db/migrations
-                                               ui/state ui/event-handler]}]
+(defmethod ig/init-key :ui/renderer [_ {:keys [ui/state ui/event-handler]}]
   (let [renderer (fx/create-renderer
                   :middleware (comp
                                ;; Pass context to every lifecycle as part of option map
